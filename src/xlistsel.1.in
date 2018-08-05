@@ -1,0 +1,132 @@
+.Dd $Mdocdate$
+.Dt xlistsel 1
+.Os
+.Sh NAME
+.Nm xlistsel
+.Nd list selection dialog with custom buttons
+.Sh SYNOPSIS
+.Nm xlistsel
+.Op options
+.Oo list-elem1
+.Oo list-elem2
+.Oo ...
+.Sh DESCRIPTION
+The
+.Nm
+utility shows a dialog with a list and some buttons below.
+The user may select one entry of the list by pressing one of these
+buttons. There are a lot of ways to adapt that window to your needs.	
+This tool is built to be used as Graphical User Interface in Scripts.
+
+All Elements of the list are split into columns using the
+.Fl s Ar separator
+option. Thus 
+.Nm
+shows in fact a table and not only a list.
+Yet, 
+.Nm
+has no options to modify that table, it is no Spreadsheet.
+
+.Ss Options:
+.Bl -tag -width Ds
+#include "../generated/xlistsel.1.options-inc"
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds
+.It -1
+an error occured, check stderr.
+.It 0
+the user canceled the dialog, no output
+.It >=1
+The user selected an entry by pressing either a button or the Enter Key.
+The button pressed starts with '1' for the leftmost button. The second button
+from the left gets '2' and so on.
+
+The selected line is written to stdout, depending on the 
+.Ar output-column
+option.
+.El
+.Sh EXAMPLES
+
+Display a two-column table list with some Buttons
+.Bd -literal -offset indent
+xlistsel -b Yes -b No A:1 B:2 C:3
+.Ed
+
+Display the users on your machine
+.Bd -literal -offset indent
+xlistsel -i < /etc/passwd
+.Ed
+
+Display the users on your machine with nice Description:
+.Bd -literal -offset indent
+xlistsel -t '/etc/passwd' -d 'content of /etc/passwd:' -i < /etc/passwd
+.Ed
+
+Custom buttons to add Actions which the user can perform:
+.Bd -literal -offset indent
+xlistsel -t '/etc/passwd' -b 'Change Password' -b 'Delete' -i < /etc/passwd
+.Ed
+
+A simple File manager
+.Bd -literal -offset indent
+while true
+do
+	FILENAME=$(ls -a | xlistsel -i -b Open -b Delete -b Exit)
+	case $? in
+		0 | 3) break ;; # User closes dialog
+		1) [ -d $FILENAME ] && cd $FILENAME || xedit "$FILENAME" ;;
+		2) echo rm "$FILENAME" ;; # well... we better avoid this here ;-)
+	esac
+done
+.Ed
+
+A simple Task manager. We replace the space between the fields with '|'
+because xlistsel depends on a strict field separator.
+.Bd -literal -offset indent
+while true
+do
+	PID=$(
+		ps -o pid,ppid,nice,time,comm | 
+		sed -E 's/ +/|/g' | 
+		xlistsel -s '|' -L -b Kill -b Nice -b Exit -o 0
+	)
+	case $? in
+		0 | 3) exit;;
+		1) kill $PID;;
+		2) renice 10 $PID;;
+	esac
+done
+.Ed
+
+.Nm
+may also be used without any list provided, so in some cases it may be a 
+better-looking
+.Xr xmessage 1
+replacement.
+.Bd -literal -offset indent
+xlistsel -t 'My Query' -d 'Do you really want?' -b Yes -b No
+.Ed
+
+.\" .Sh DIAGNOSTICS
+.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
+.Sh SEE ALSO
+.Xr xmessage 1
+.Xr zenity 1
+.Xr xdialog 1
+.Rs
+.%B Nuklear library
+.%U http://www.github.com/vurtun/nuklear
+.Re
+.\" .Sh STANDARDS
+.Sh HISTORY
+This program was built because I just needed some simple dialog
+without gigabytes of dependencies. It is based on the nuklear X11/Xlib Demo.
+.Sh AUTHORS
+.An Andreas Koerner Aq Mt andi@jaak.de
+.\" .Sh CAVEATS
+.\" .Sh BUGS
+.Sh SECURITY CONSIDERATIONS
+This tool and it's dependencies have not seen extensive auditing.
+Do not run this as root.
+
